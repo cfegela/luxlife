@@ -17,6 +17,32 @@ env:
   IMAGE_NAME: ${{ github.repository }}/frontend
 
 jobs:
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          publishDeployment: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          generateSarif: true
+
+      - name: Upload Semgrep results to GitHub
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -63,14 +89,41 @@ jobs:
           path: frontend/coverage/
           retention-days: 7
 
+  trivy-fs:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './frontend'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'trivy-fs-frontend'
+
   docker:
     name: Docker Build & Publish
     runs-on: ubuntu-latest
-    needs: test
+    needs: [semgrep, test, trivy-fs]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: write
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -106,3 +159,17 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner (image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy image scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+          category: 'trivy-image-frontend'

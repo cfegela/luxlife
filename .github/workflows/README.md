@@ -7,7 +7,13 @@ This directory contains CI/CD workflows for the Todo application.
 ### 1. `backend.yml` - Backend Pipeline
 **Triggers:** Push/PR affecting backend files
 
-Complete backend pipeline with two jobs:
+Complete backend pipeline with four jobs:
+
+**Semgrep Job:**
+- Static code analysis for security vulnerabilities
+- Scans JavaScript/TypeScript code
+- Uploads results to GitHub Security tab
+- Runs in parallel with tests
 
 **Test Job:**
 - Matrix testing on Node.js 18.x and 20.x
@@ -15,9 +21,16 @@ Complete backend pipeline with two jobs:
 - Uploads coverage to Codecov (Node 20.x only)
 - Archives coverage reports (7-day retention)
 
-**Docker Job:** (only on push to main)
+**Trivy Filesystem Job:**
+- Scans backend code for vulnerabilities
+- Checks dependencies (npm packages)
+- Reports CRITICAL and HIGH severity issues
+- Uploads results to GitHub Security tab
+
+**Docker Job:** (only on push to main, after all checks pass)
 - Builds Docker image for backend
 - Publishes to GitHub Container Registry (ghcr.io)
+- Scans Docker image with Trivy
 - Tags: branch name, semantic version, git SHA
 - Uses GitHub Actions cache for faster builds
 
@@ -28,7 +41,13 @@ Complete backend pipeline with two jobs:
 ### 2. `frontend.yml` - Frontend Pipeline
 **Triggers:** Push/PR affecting frontend files
 
-Complete frontend pipeline with two jobs:
+Complete frontend pipeline with four jobs:
+
+**Semgrep Job:**
+- Static code analysis for security vulnerabilities
+- Scans JavaScript/HTML/CSS code
+- Uploads results to GitHub Security tab
+- Runs in parallel with tests
 
 **Test Job:**
 - Matrix testing on Node.js 18.x and 20.x
@@ -36,9 +55,16 @@ Complete frontend pipeline with two jobs:
 - Uploads coverage to Codecov (Node 20.x only)
 - Archives coverage reports (7-day retention)
 
-**Docker Job:** (only on push to main)
+**Trivy Filesystem Job:**
+- Scans frontend code for vulnerabilities
+- Checks dependencies (npm packages)
+- Reports CRITICAL and HIGH severity issues
+- Uploads results to GitHub Security tab
+
+**Docker Job:** (only on push to main, after all checks pass)
 - Builds Docker image for frontend (nginx)
 - Publishes to GitHub Container Registry (ghcr.io)
+- Scans Docker image with Trivy
 - Tags: branch name, semantic version, git SHA
 - Uses GitHub Actions cache for faster builds
 
@@ -61,7 +87,19 @@ GitHub Actions is enabled by default for public repositories. For private repos:
 1. Go to Settings → Actions → General
 2. Allow all actions and reusable workflows
 
-### 2. Configure Codecov (Optional)
+### 2. Enable GitHub Advanced Security
+For security scanning features:
+
+**Public repositories:**
+- Free and enabled by default
+- Code scanning, secret scanning, Dependabot alerts all available
+
+**Private repositories:**
+- Requires GitHub Advanced Security license
+- Navigate to: Settings → Code security and analysis
+- Enable: Dependency graph, Dependabot alerts, Code scanning
+
+### 3. Configure Codecov (Optional)
 To enable coverage reporting:
 
 1. Sign up at [codecov.io](https://codecov.io)
@@ -73,14 +111,28 @@ To enable coverage reporting:
 
 If you don't want Codecov integration, the workflows will still work (the upload step has `fail_ci_if_error: false`).
 
-### 3. GitHub Container Registry (GHCR)
+### 4. Configure Semgrep (Optional)
+For enhanced Semgrep features:
+
+1. Sign up at [semgrep.dev](https://semgrep.dev)
+2. Get your app token
+3. Add to GitHub Secrets:
+   - Settings → Secrets and variables → Actions
+   - New repository secret: `SEMGREP_APP_TOKEN`
+
+**Note:** Semgrep works without this token, but the token enables:
+- Centralized dashboard
+- Historical trend tracking
+- Custom rule management
+
+### 5. GitHub Container Registry (GHCR)
 To publish Docker images:
 
 1. The workflow uses `GITHUB_TOKEN` automatically
 2. Images are published to `ghcr.io/YOUR_USERNAME/luxlife/backend` and `frontend`
 3. Make packages public in Settings → Packages if desired
 
-### 4. Branch Protection (Recommended)
+### 6. Branch Protection (Recommended)
 Set up branch protection rules for `main`:
 
 1. Go to Settings → Branches → Add rule
@@ -88,7 +140,9 @@ Set up branch protection rules for `main`:
 3. Enable:
    - ☑️ Require status checks to pass before merging
    - ☑️ Require branches to be up to date before merging
-   - Select: `Backend Tests`, `Frontend Tests`, `Docker Build Test`
+   - Select required checks:
+     - **Backend:** Semgrep Security Scan, Test (18.x), Test (20.x), Trivy Filesystem Scan
+     - **Frontend:** Semgrep Security Scan, Test (18.x), Test (20.x), Trivy Filesystem Scan
    - ☑️ Require pull request reviews before merging
 
 ## Workflow Triggers
@@ -113,6 +167,15 @@ Set up branch protection rules for `main`:
 - Navigate to Packages in GitHub
 - View published container images
 - Images at: `ghcr.io/YOUR_USERNAME/luxlife/backend` and `frontend`
+
+### Security Scan Results
+- Navigate to Security tab in GitHub
+- Click on "Code scanning" (left sidebar)
+- View findings from Semgrep and Trivy
+- See detailed vulnerability reports
+- Track security trends over time
+
+For more details, see [SECURITY.md](SECURITY.md)
 
 ## Local Testing
 
