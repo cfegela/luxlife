@@ -8,101 +8,79 @@
 │                     (Push / Pull Request)                    │
 └────────────┬────────────────────────────────────────────────┘
              │
-             ├──────────────┬──────────────┬──────────────┐
-             │              │              │              │
-             ▼              ▼              ▼              ▼
-    ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐
-    │    CI      │  │  Backend   │  │  Frontend  │  │   Docker   │
-    │ (ci.yml)   │  │ Tests      │  │  Tests     │  │  Publish   │
-    └────────────┘  └────────────┘  └────────────┘  └────────────┘
-         │               │               │               │
-         │               │               │               │
-         ▼               ▼               ▼               ▼
+             ├──────────────┬──────────────┐
+             │              │              │
+             ▼              ▼              ▼
+    ┌────────────────┐  ┌────────────────┐  ┌──────────────┐
+    │    Backend     │  │    Frontend    │  │  Dependabot  │
+    │ (backend.yml)  │  │ (frontend.yml) │  │   Updates    │
+    └────────────────┘  └────────────────┘  └──────────────┘
+             │                    │
+             ▼                    ▼
     ┌─────────────────────────────────────────────────────────┐
-    │              Parallel Execution                          │
-    │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-    │  │ Backend  │  │ Frontend │  │  Docker  │              │
-    │  │  Tests   │  │  Tests   │  │  Build   │              │
-    │  └──────────┘  └──────────┘  └──────────┘              │
+    │              Independent Pipelines                       │
+    │                                                          │
+    │  Backend Pipeline          Frontend Pipeline            │
+    │  ┌──────────┐              ┌──────────┐                │
+    │  │  Tests   │              │  Tests   │                │
+    │  │ (18, 20) │              │ (18, 20) │                │
+    │  └────┬─────┘              └────┬─────┘                │
+    │       │                         │                       │
+    │       ▼                         ▼                       │
+    │  ┌──────────┐              ┌──────────┐                │
+    │  │  Docker  │              │  Docker  │                │
+    │  │  Build   │              │  Build   │                │
+    │  └──────────┘              └──────────┘                │
     └─────────────────────────────────────────────────────────┘
-         │               │               │
-         ▼               ▼               ▼
+             │                    │
+             ▼                    ▼
     ┌─────────────────────────────────────────────────────────┐
     │                   Artifacts                              │
-    │  • Coverage Reports (backend & frontend)                 │
-    │  • Docker Images (ghcr.io)                              │
-    │  • Test Summary (GitHub Summary)                        │
+    │  • Backend Coverage Reports                             │
+    │  • Frontend Coverage Reports                            │
+    │  • Backend Docker Image (ghcr.io)                       │
+    │  • Frontend Docker Image (ghcr.io)                      │
     └─────────────────────────────────────────────────────────┘
 ```
 
 ## Workflow Triggers
 
-### 1. Main CI Workflow (`ci.yml`)
-```
-Trigger: Any push or PR to main/develop
-│
-├── Backend Tests (Node 20.x)
-│   ├── npm ci
-│   ├── npm test
-│   └── Upload coverage artifact
-│
-├── Frontend Tests (Node 20.x)
-│   ├── npm ci
-│   ├── npm test
-│   └── Upload coverage artifact
-│
-├── Docker Build Test
-│   ├── Build backend image
-│   └── Build frontend image
-│
-└── Test Summary Report
-    ├── Download all artifacts
-    └── Create summary
-```
-
-### 2. Backend Tests (`backend-tests.yml`)
+### 1. Backend Pipeline (`backend.yml`)
 ```
 Trigger: Push/PR affecting backend/** files
 │
-└── Test Matrix (Node 18.x, 20.x)
-    ├── Checkout code
-    ├── Setup Node.js with npm cache
-    ├── Install dependencies (npm ci)
-    ├── Run tests with coverage
-    ├── Upload to Codecov (Node 20.x only)
-    ├── Archive coverage reports
-    └── Comment on PR with coverage (Node 20.x only)
+├── Test Job - Matrix (Node 18.x, 20.x)
+│   ├── Checkout code
+│   ├── Setup Node.js with npm cache
+│   ├── Install dependencies (npm ci)
+│   ├── Run tests with coverage (22 tests)
+│   ├── Upload to Codecov (Node 20.x only)
+│   └── Archive coverage reports (7-day retention)
+│
+└── Docker Job (only on push to main, after tests pass)
+    ├── Login to GitHub Container Registry
+    ├── Extract metadata & tags
+    ├── Build backend Docker image with cache
+    └── Push to ghcr.io/username/luxlife/backend
 ```
 
-### 3. Frontend Tests (`frontend-tests.yml`)
+### 2. Frontend Pipeline (`frontend.yml`)
 ```
 Trigger: Push/PR affecting frontend/** files
 │
-└── Test Matrix (Node 18.x, 20.x)
-    ├── Checkout code
-    ├── Setup Node.js with npm cache
-    ├── Install dependencies (npm ci)
-    ├── Run tests with coverage
-    ├── Upload to Codecov (Node 20.x only)
-    ├── Archive coverage reports
-    └── Comment on PR with coverage (Node 20.x only)
-```
-
-### 4. Docker Publish (`docker-publish.yml`)
-```
-Trigger: Push to main, version tags, or PR to main
+├── Test Job - Matrix (Node 18.x, 20.x)
+│   ├── Checkout code
+│   ├── Setup Node.js with npm cache
+│   ├── Install dependencies (npm ci)
+│   ├── Run tests with coverage (32 tests)
+│   ├── Upload to Codecov (Node 20.x only)
+│   └── Archive coverage reports (7-day retention)
 │
-├── Run All Tests
-│   ├── Backend tests
-│   └── Frontend tests
-│
-└── Build & Push (if tests pass and not PR)
+└── Docker Job (only on push to main, after tests pass)
     ├── Login to GitHub Container Registry
     ├── Extract metadata & tags
-    ├── Build backend image with cache
-    ├── Push backend image
-    ├── Build frontend image with cache
-    └── Push frontend image
+    ├── Build frontend Docker image with cache
+    └── Push to ghcr.io/username/luxlife/frontend
 ```
 
 ## Path Filtering

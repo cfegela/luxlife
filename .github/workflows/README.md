@@ -4,66 +4,49 @@ This directory contains CI/CD workflows for the Todo application.
 
 ## Workflows
 
-### 1. `ci.yml` - Full Test Suite
-**Triggers:** Push/PR to main or develop branches
-
-Runs the complete test suite including:
-- Backend tests with coverage
-- Frontend tests with coverage
-- Docker build validation
-- Test summary report
-
-**Jobs:**
-- `backend-test`: Runs backend Jest tests
-- `frontend-test`: Runs frontend Jest tests
-- `docker-build`: Validates Docker images build successfully
-- `report`: Creates summary of all test results
-
-### 2. `backend-tests.yml` - Backend Tests
+### 1. `backend.yml` - Backend Pipeline
 **Triggers:** Push/PR affecting backend files
 
-Runs backend-specific tests:
-- Tests on Node.js 18.x and 20.x
-- Uploads coverage to Codecov
-- Posts coverage comment on PRs
-- Archives coverage reports
+Complete backend pipeline with two jobs:
+
+**Test Job:**
+- Matrix testing on Node.js 18.x and 20.x
+- Runs all 22 Jest tests with coverage
+- Uploads coverage to Codecov (Node 20.x only)
+- Archives coverage reports (7-day retention)
+
+**Docker Job:** (only on push to main)
+- Builds Docker image for backend
+- Publishes to GitHub Container Registry (ghcr.io)
+- Tags: branch name, semantic version, git SHA
+- Uses GitHub Actions cache for faster builds
 
 **Path filters:**
 - `backend/**`
-- `.github/workflows/backend-tests.yml`
+- `.github/workflows/backend.yml`
 
-### 3. `frontend-tests.yml` - Frontend Tests
+### 2. `frontend.yml` - Frontend Pipeline
 **Triggers:** Push/PR affecting frontend files
 
-Runs frontend-specific tests:
-- Tests on Node.js 18.x and 20.x
-- Uploads coverage to Codecov
-- Posts coverage comment on PRs
-- Archives coverage reports
+Complete frontend pipeline with two jobs:
+
+**Test Job:**
+- Matrix testing on Node.js 18.x and 20.x
+- Runs all 32 Jest tests with coverage
+- Uploads coverage to Codecov (Node 20.x only)
+- Archives coverage reports (7-day retention)
+
+**Docker Job:** (only on push to main)
+- Builds Docker image for frontend (nginx)
+- Publishes to GitHub Container Registry (ghcr.io)
+- Tags: branch name, semantic version, git SHA
+- Uses GitHub Actions cache for faster builds
 
 **Path filters:**
 - `frontend/**`
-- `.github/workflows/frontend-tests.yml`
+- `.github/workflows/frontend.yml`
 
-### 4. `docker-publish.yml` - Docker Build & Publish
-**Triggers:**
-- Push to main branch
-- Version tags (v*.*.*)
-- PRs to main (build only, no push)
-
-**Features:**
-- Runs all tests before building
-- Builds and pushes Docker images to GitHub Container Registry
-- Tags images with:
-  - Branch name
-  - Semantic version (from git tags)
-  - Git SHA
-- Uses layer caching for faster builds
-
-**Requires:**
-- `GITHUB_TOKEN` (automatically provided)
-
-### 5. `dependabot.yml` - Dependency Updates
+### 3. `dependabot.yml` - Dependency Updates
 
 Automated dependency updates for:
 - Backend npm packages (weekly)
@@ -110,18 +93,16 @@ Set up branch protection rules for `main`:
 
 ## Workflow Triggers
 
-| Workflow | Push to main/develop | PR to main/develop | Tags | Path Filters |
-|----------|---------------------|-------------------|------|--------------|
-| CI | ✅ | ✅ | ❌ | None |
-| Backend Tests | ✅ | ✅ | ❌ | backend/** |
-| Frontend Tests | ✅ | ✅ | ❌ | frontend/** |
-| Docker Publish | ✅ (main only) | ✅ (build only) | ✅ | None |
+| Workflow | Push to main/develop | PR to main/develop | Docker Build | Path Filters |
+|----------|---------------------|-------------------|--------------|--------------|
+| Backend | ✅ | ✅ | ✅ (main only) | backend/** |
+| Frontend | ✅ | ✅ | ✅ (main only) | frontend/** |
 
 ## Viewing Results
 
 ### Test Results
 - Navigate to Actions tab in GitHub
-- Click on the workflow run
+- Click on the workflow run (Backend or Frontend)
 - View job details and logs
 
 ### Coverage Reports
@@ -131,6 +112,7 @@ Set up branch protection rules for `main`:
 ### Docker Images
 - Navigate to Packages in GitHub
 - View published container images
+- Images at: `ghcr.io/YOUR_USERNAME/luxlife/backend` and `frontend`
 
 ## Local Testing
 
@@ -141,11 +123,14 @@ Test workflows locally using [act](https://github.com/nektos/act):
 brew install act  # macOS
 # or download from https://github.com/nektos/act
 
-# Run the CI workflow
-act -W .github/workflows/ci.yml
+# Run backend workflow
+act -W .github/workflows/backend.yml
+
+# Run frontend workflow
+act -W .github/workflows/frontend.yml
 
 # Run specific job
-act -j backend-test
+act -j test
 ```
 
 ## Customization

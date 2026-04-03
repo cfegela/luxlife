@@ -5,13 +5,11 @@ Add these badges to your main README.md file to show build and coverage status.
 ## GitHub Actions Status Badges
 
 ```markdown
-![CI](https://github.com/YOUR_USERNAME/luxlife/actions/workflows/ci.yml/badge.svg)
-![Backend Tests](https://github.com/YOUR_USERNAME/luxlife/actions/workflows/backend-tests.yml/badge.svg)
-![Frontend Tests](https://github.com/YOUR_USERNAME/luxlife/actions/workflows/frontend-tests.yml/badge.svg)
-![Docker Publish](https://github.com/YOUR_USERNAME/luxlife/actions/workflows/docker-publish.yml/badge.svg)
+![Backend](https://github.com/YOUR_USERNAME/luxlife/actions/workflows/backend.yml/badge.svg)
+![Frontend](https://github.com/YOUR_USERNAME/luxlife/actions/workflows/frontend.yml/badge.svg)
 ```
 
-Replace `YOUR_USERNAME` with your GitHub username.
+Replace `YOUR_USERNAME` with your GitHub username (e.g., `cfegela`).
 
 ## Codecov Badges
 
@@ -24,8 +22,9 @@ Replace `YOUR_USERNAME` with your GitHub username.
 ```markdown
 # LuxLife Todo Application
 
-![CI](https://github.com/YOUR_USERNAME/luxlife/actions/workflows/ci.yml/badge.svg)
-[![codecov](https://codecov.io/gh/YOUR_USERNAME/luxlife/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/luxlife)
+![Backend](https://github.com/cfegela/luxlife/actions/workflows/backend.yml/badge.svg)
+![Frontend](https://github.com/cfegela/luxlife/actions/workflows/frontend.yml/badge.svg)
+[![codecov](https://codecov.io/gh/cfegela/luxlife/branch/main/graph/badge.svg)](https://codecov.io/gh/cfegela/luxlife)
 
 A full-stack CRUD todo application with Express, PostgreSQL, and vanilla JavaScript.
 
