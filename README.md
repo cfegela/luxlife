@@ -497,11 +497,6 @@ docker exec -it todo-db psql -U postgres tododb
 
 ## Resources
 
-### Documentation
-- [GitHub Actions Workflows](.github/workflows/README.md)
-- [CI/CD Architecture](.github/workflows/ARCHITECTURE.md)
-- [Security Scanning Guide](.github/workflows/SECURITY.md)
-
 ### Technologies
 - [Express.js Documentation](https://expressjs.com/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
