@@ -31,17 +31,10 @@ jobs:
       - name: Run Semgrep
         uses: returntocorp/semgrep-action@v1
         with:
-          config: auto
+          config: >-
+            p/security-audit
+            p/javascript
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          generateSarif: true
-
-      - name: Upload Semgrep results to GitHub
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep.sarif
-          category: semgrep
 
   test:
     name: Test
